@@ -190,7 +190,7 @@ let result = add(five, ten);
 
     for t in tests {
         let tok = lex.next_token();
-
+        println!("{:?}", tok);
         assert_eq!(tok.token_type, t.token_type);
     }
 }
