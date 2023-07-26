@@ -6,10 +6,11 @@ trait IsLetter {
 
 impl IsLetter for char {
     fn is_letter(&self) -> bool {
-        self.is_alphabetic() || *self == '_'
+        self.is_ascii_alphabetic() || *self == '_'
     }
 }
 
+#[derive(Debug)]
 pub struct Lexer {
     pub input: String,
     pub position: usize, // current position in input (points to current char)
@@ -66,7 +67,17 @@ impl Lexer {
                     token_type: TokenType::RBRACE,
                     literal: String::from("}"),
                 },
-                ch if ch.is_letter() => Token::new(TokenType::IDENT, &self.read_identifier()),
+                ch if ch.is_letter() => {
+                    // the early returns are because read_identifier advances the position until a non-letter is
+                    // detected and we don't want to advance it again
+                    return Token::new(TokenType::IDENT, &self.read_identifier());
+                }
+                ch if ch.is_numeric() => {
+                    return Token {
+                        token_type: TokenType::INT,
+                        literal: self.read_number(),
+                    };
+                }
                 _ => Token {
                     token_type: TokenType::ILLEGAL,
                     literal: String::from(""),
@@ -77,12 +88,6 @@ impl Lexer {
                 literal: String::from(""),
             },
         };
-
-        // the early return is because read_identifier advances the position until a non-letter is
-        // detected and we don't want to advance it again
-        if tok.token_type == TokenType::IDENT {
-            return tok;
-        }
 
         self.read_char();
         tok
@@ -103,6 +108,19 @@ impl Lexer {
 
         while let Some(ch) = self.ch {
             if ch.is_letter() {
+                self.read_char();
+            } else {
+                break;
+            }
+        }
+
+        self.input[initial_position..self.position].to_string()
+    }
+
+    fn read_number(&mut self) -> String {
+        let initial_position = self.position;
+        while let Some(ch) = self.ch {
+            if ch.is_numeric() {
                 self.read_char();
             } else {
                 break;
